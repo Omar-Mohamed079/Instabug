@@ -9,8 +9,8 @@ const movieSlice = createSlice({
   reducers: {
     addMovies(state, action) {
         console.log(action ,"action inside slice")
-        const tempProduct = {...action.payload};
-        state.moviesItem.push(tempProduct);
+        const tempMovies = {...action.payload};
+        state.moviesItem.push(tempMovies);
     },
   },
 });

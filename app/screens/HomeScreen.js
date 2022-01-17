@@ -5,52 +5,42 @@ import {
   FlatList,
   ActivityIndicator,
   Text,
-  ScrollView,
-  Image,
+  TouchableOpacity,
 } from 'react-native';
 import {getMovies} from '../api/getMovies';
-import ViewMoreText from 'react-native-view-more-text';
-import {Appbar, Headline} from 'react-native-paper';
-import ModalTemplate from '../components/Modal';
 import ModalForm from '../components/Modal';
-import {useDispatch, useSelector} from 'react-redux';
+import {useSelector} from 'react-redux';
+import Header from '../components/Header';
+import renderAllMovies from '../components/renderAllMovies';
+import renderMyMovies from '../components/renderMyMovies';
 
 function HomeScreen(props) {
   const [page, setPage] = useState(1);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [currentIndex, setcurrentIndex] = useState(1);
+  const moviesCategory = [
+    {category: 'My Movies'},
+    {
+      category: 'All Movies',
+    },
+  ];
 
-  const dispatch = useDispatch();
   const info = useSelector(state => state.movies.moviesItem);
-  console.log('info', info);
-  const _handleMore = () => setVisible(true);
-  useEffect(() => {
-    setLoading(true);
-    getMovies(page).then(data => {
-      setData(prev => [...prev, ...data]);
-      console.log('data', data);
-      setLoading(false);
-    });
-  }, [page]);
   const handleLoadMore = () => {
     setPage(page + 1);
     setLoading(true);
   };
-  const renderViewMore = onPress => {
-    return (
-      <Text onPress={onPress} style={{color: 'grey', marginLeft: 5}}>
-        View more
-      </Text>
-    );
-  };
-  const renderViewLess = onPress => {
-    return (
-      <Text onPress={onPress} style={{color: 'grey', marginLeft: 5}}>
-        View less
-      </Text>
-    );
-  };
+  const addmovieModal = () => setVisible(true);
+  useEffect(() => {
+    setLoading(true);
+    getMovies(page).then(data => {
+      setData(prev => [...prev, ...data]);
+      setLoading(false);
+    });
+  }, [page]);
+
   const renderFooter = () => {
     return loading ? (
       <View style={styles.loader}>
@@ -58,97 +48,51 @@ function HomeScreen(props) {
       </View>
     ) : null;
   };
-  const renderRow = ({item}) => {
-    return (
-      <View style={styles.itemRow}>
-        <Image
-          source={{
-            uri: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
-          }}
-          style={styles.itemImage}
-        />
-        <Text style={styles.itemText}> {item.title}</Text>
-        <ViewMoreText
-          numberOfLines={3}
-          renderViewMore={renderViewMore}
-          renderViewLess={renderViewLess}
-          textStyle={styles.overView}>
-          <Text>{item.overview}</Text>
-        </ViewMoreText>
-      </View>
-    );
-  };
-  const renderMyMovies = ({item}) => {
-    console.log(item, 'item in render movies');
-    return (
-      <View style={styles.itemMovies}>
-        <Image
-          source={{
-            uri: item.imagePath,
-          }}
-          style={styles.itemImage}
-        />
-        <Text style={styles.itemText}> {item.title}</Text>
-        <ViewMoreText
-          numberOfLines={3}
-          renderViewMore={renderViewMore}
-          renderViewLess={renderViewLess}
-          textStyle={styles.overView}>
-          <Text>{item.Overview}</Text>
-        </ViewMoreText>
-      </View>
-    );
-  };
-
   return (
-    <View>
-      <Appbar.Header>
-        <Appbar.Content title="Movies App" />
-        <Appbar.Action
-          icon={require('../assets/plus.png')}
-          onPress={_handleMore}
-        />
-      </Appbar.Header>
-      {info[0] && (
-        <Headline
-          style={{
-            backgroundColor: 'white',
-            height: 45,
-            borderRadius: 5,
-            width: '100%',
-            textAlign: 'center',
-          }}>
-          My Movies
-        </Headline>
-      )}
-      {info[0] && (
-        <FlatList
-          data={info}
-          style={styles.container}
-          renderItem={renderMyMovies}
-          keyExtractor={item => item.id}
-        />
-      )}
-      <Headline
-        style={{
-          backgroundColor: 'white',
-          height: 45,
-          borderRadius: 5,
-          width: '100%',
-          textAlign: 'center',
-        }}>
-        All Movies
-      </Headline>
-      <FlatList
-        data={data}
-        style={styles.container}
-        renderItem={renderRow}
-        keyExtractor={item => item.id}
-        ListFooterComponent={renderFooter}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        initialNumToRender={10}
-      />
+    <View style={styles.bigContainer}>
+      <Header onPress={addmovieModal} />
+      <View style={styles.container}>
+        {moviesCategory.map(({category}, index) => {
+          return (
+            <View style={styles.cardContainer}>
+              <View style={[styles.card, {backgroundColor: 'white'}]}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setcurrentIndex(index);
+                  }}>
+                  <Text style={[styles.Heading]}>{category}</Text>
+                </TouchableOpacity>
+                {index === currentIndex && (
+                  <View>
+                    {index === 0 ? (
+                      info[0] ? (
+                        <FlatList
+                          data={info}
+                          style={styles.MoviesContainer}
+                          renderItem={item => renderMyMovies(item)}
+                          keyExtractor={item => item.id}
+                        />
+                      ) : (
+                        <View style={{backgroundColor: 'white'}}></View>
+                      )
+                    ) : (
+                      <FlatList
+                        data={data}
+                        style={styles.container}
+                        renderItem={item => renderAllMovies(item)}
+                        keyExtractor={item => item.id}
+                        ListFooterComponent={renderFooter}
+                        onEndReached={handleLoadMore}
+                        onEndReachedThreshold={0.5}
+                      />
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+          );
+        })}
+      </View>
       <ModalForm visible={visible} setVisible={setVisible} />
     </View>
   );
@@ -157,40 +101,30 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#f5fcff',
   },
-  itemRow: {
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    justifyContent: 'center',
-    // paddingHorizontal:20
-  },
-  itemMovies: {
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    justifyContent: 'center',
-    height: 200,
-  },
-  itemText: {
-    fontSize: 18,
-    padding: 5,
-    color: 'black',
-    fontWeight: 'bold',
-  },
-  overView: {
-    fontSize: 16,
-    padding: 5,
-    color: 'black',
-    marginLeft: 5,
-  },
-  itemImage: {
-    width: '100%',
-    height: 250,
-    resizeMode: 'stretch',
-  },
   loader: {
     marginTop: 10,
     alignItems: 'center',
+  },
+  card: {
+    flexGrow: 1,
+    backgroundColor: 'white',
+  },
+  cardContainer: {
+    flexGrow: 1,
+    backgroundColor: 'white',
+  },
+  Heading: {
+    fontSize: 30,
+    fontWeight: '900',
+    color: 'black',
+    alignSelf: 'center',
+  },
+  MoviesContainer: {
+    maxHeight: 610,
+  },
+  bigContainer: {
+    backgroundColor: 'white',
+    flex: 1,
   },
 });
 export default HomeScreen;
